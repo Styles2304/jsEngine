@@ -2,31 +2,34 @@
 //=======================================================//
 // Sprite Class
 //=======================================================//
-    let Sprite = function(x, y, width, height) {
+    let Sprite = function(x, y, width, height, fps) {
         this.width = width || 25;
         this.height = height || 25;
         this.health = {
             cur: 100,
             tot: 100
         }
+        this.fps = fps;
         this.physics = {
             enabled: false,
             collision: Array(),
             collideWithWorld: false,
+            angle: 0,
+            thrust: 0,
             velocity: {
                 x: 0,
                 y: 0
             },
-            lockAngularVelocity: false,
-            lockedAngle: 0,
-            angularMomentum: 0,
+            acceleration: 0,
+            maxAccel: 0,
+            speed: 0,
+            maxSpeed: 0,
+            drag: 0,
+            lockVelocityToRotation: false,
+            angularVelocity: 0,
             angularMax: 0,
             angularDrag: 0,
-            acceleration: 0,
-            maxAccel: 0.5,
-            maxSpeed: 0,
-            speed: 0,
-            drag: 0,
+
             worldCollision: false
         }
         this.currentWorld = null;
@@ -49,7 +52,6 @@
             x: 0,
             y: 0
         }
-        this.angle = 0;
         this.debug = false;
         this.debugData = {
             x: 0,
@@ -78,13 +80,7 @@
         }
 
         Game.prototype.drawSpriteSheet(this);
-
-        var _sprite = this.sprite;
-        var _anim = this.animation;
-        var _ctx = this.sprite.canvas.getContext("2d");
-
-        // draw sprite to a canvas that can be transformed
-        _ctx.drawImage(_sprite.sheet, 0, 0);
+        this.sprite.canvas.getContext("2d").drawImage(this.sprite.sheet, 0, 0);
     }
 
     Sprite.prototype = {
@@ -124,83 +120,39 @@
                 _worldCol.c4.x = (this.world.x - this.anchor.x) + _col.c4.x;
                 _worldCol.c4.y = (this.world.y - this.anchor.y) + _col.c4.y;
 
-                // Handles world boundaries collision
-                if (_p.worldCollision) {
-                    if (_worldCol.c1.x > this.currentWorld.width ||
-                        _worldCol.c2.x > this.currentWorld.width ||
-                        _worldCol.c3.x > this.currentWorld.width ||
-                        _worldCol.c4.x > this.currentWorld.width) {
+            //=======================================================//
+            //
+            // Handles world boundaries collision
+            //  if (_p.worldCollision) {
+            //
+            //  }
+            //
+            //=======================================================//
 
-                        if (this.angle > 0 && this.angle < 180) {
-                            _p.velocity.x = 0;
-                        }
-                    }
-
-                    if (_worldCol.c1.x < this.currentWorld.x ||
-                        _worldCol.c2.x < this.currentWorld.x ||
-                        _worldCol.c3.x < this.currentWorld.x ||
-                        _worldCol.c4.x < this.currentWorld.x) {
-
-                        if (this.angle > 180 && this.angle < 360) {
-                            _p.velocity.x = 0;
-                        }
-                    }
-
-                    if (_worldCol.c1.y > this.currentWorld.height ||
-                        _worldCol.c2.y > this.currentWorld.height ||
-                        _worldCol.c3.y > this.currentWorld.height ||
-                        _worldCol.c4.y > this.currentWorld.height) {
-                        
-                        if (this.angle > 90 && this.angle < 270) {
-                            _p.velocity.y = 0;
-                        }
-                    }
-
-                    if (_worldCol.c1.y < this.currentWorld.y ||
-                        _worldCol.c2.y < this.currentWorld.y ||
-                        _worldCol.c3.y < this.currentWorld.y ||
-                        _worldCol.c4.y < this.currentWorld.y) {
-
-                        if (this.angle > 270 && this.angle <= 360 ||
-                            this.angle >= 0 && this.angle < 90) {
-                            _p.velocity.y = 0;
-                        }
-                    }
-                }
-
-                // Applies velocity, momentum, and acceleration to sprite
-                this.world.x -= _p.velocity.x;
-                this.world.y -= _p.velocity.y;
-
-                this.x -= _p.velocity.x;
-                this.y -= _p.velocity.y;
+            //=======================================================//
+            // All things velocity
+            //=======================================================//
 
 
-                // Angular Momentum
-                if (_p.angularMomentum > 0) {
-                    _p.angularMomentum -= _p.angularDrag;
-                }
-                if (_p.angularMomentum < 0) {
-                    _p.angularMomentum += _p.angularDrag;
-                }
-                this.setAngle(_p.angularMomentum);
-                // Drag
-                if (_p.speed > 0) {
-                    _p.speed -= _p.drag;
-                }
-                if (_p.speed < 0) {
-                    _p.speed = 0;
-                }
-                _p.speed = Math.round(_p.speed * 1e2) / 1e2;
-                if (_p.lockAngularVelocity) {
+                    if (_p.angularVelocity > 0) { _p.angularVelocity -= _p.angularDrag; }
+                    if (_p.angularVelocity < 0) { _p.angularVelocity += _p.angularDrag; }
+                    _p.angularVelocity = Game.prototype.round(_p.angularVelocity, 2);
+                    
+                    this.setAngle(_p.angularVelocity);
+                    _p.angle = Game.prototype.round(_p.angle, 2);
                     if (_p.speed > 0) {
-                        this.setAngularVelocity(_p.lockedAngle, _p.speed);
-                    }
-                } else {
-                    if (_p.speed > 0) {
-                        this.setAngularVelocity(this.angle, _p.speed);
-                    }
-                }
+                        _p.speed -= _p.drag;
+                    } else { _p.speed = 0; }
+                    this.x -= _p.velocity.x / this.fps;
+                    this.y -= _p.velocity.y / this.fps;
+                    this.world.x -= _p.velocity.x / this.fps;
+                    this.world.y -= _p.velocity.y / this.fps;
+                
+
+            //=======================================================//
+            // All things velocity
+            //=======================================================//
+
                 // Tracks which cell the sprite is in
                 for (var a = 0; a < this.currentWorld.cells.length; a++) {
                     var _cell = this.currentWorld.cells[a];
@@ -248,14 +200,11 @@
                 context.fillText("Health: " + this.health.cur + "/" + this.health.tot, this.debugData.x, this.debugData.y + 24);
                 if (this.physics.enabled) { var _physics = "Enabled"; } else { var _physics = "Disabled"; }
                 context.fillText("Physics: " + _physics, this.debugData.x, this.debugData.y + 36);
-                context.fillText("Angle: " + this.angle, this.debugData.x, this.debugData.y + 48);
-                context.fillText("Locked Angle: " + this.physics.lockedAngle, this.debugData.x, this.debugData.y + 60);
-                context.fillText("Angular Momentum: " + this.physics.angularMomentum, this.debugData.x, this.debugData.y + 72);
-                context.fillText("Acceleration: " + this.physics.acceleration, this.debugData.x, this.debugData.y + 84);
-                context.fillText("Speed: " + this.physics.speed, this.debugData.x, this.debugData.y + 96);
-                context.fillText("Velocity: " + this.physics.velocity.x + ", " + this.physics.velocity.y, this.debugData.x, this.debugData.y + 108);
-                context.fillText("Current World: " + this.currentWorld.key, this.debugData.x, this.debugData.y + 120);
-                context.fillText("Current Cell: " + this.currentCell, this.debugData.x, this.debugData.y + 132);
+                context.fillText("Angle: " + this.physics.angle, this.debugData.x, this.debugData.y + 48);
+                context.fillText("Angular Velocity: " + this.physics.angularVelocity, this.debugData.x, this.debugData.y + 60);
+                context.fillText("Acceleration: " + this.physics.acceleration, this.debugData.x, this.debugData.y + 72);
+                context.fillText("Speed: " + this.physics.speed, this.debugData.x, this.debugData.y + 84);
+                context.fillText("Velocity: " + Game.prototype.round(this.physics.velocity.x, 2) + ", " + Game.prototype.round(this.physics.velocity.y, 2), this.debugData.x, this.debugData.y + 96);
                 context.restore();
                 if (this.physics.enabled) {
                     for (var a = 0; a < this.physics.collision.length; a++) {
@@ -313,44 +262,6 @@
             _ctx.clearRect(0, 0, this.width, this.height);
             _ctx.drawImage(this.sprite.sheet, this.offset.x, this.offset.y);
         },
-        setAngle: function(ang) {
-            var _deg = ang * Math.PI / 180;
-            var _angle = this.angle += ang;
-            if (_angle > 360) {
-                this.angle = _angle - 360;
-            } else if (_angle < 0) {
-                this.angle = _angle + 360;
-            } else if (_angle == 360) {
-                this.angle = 0;
-            } else {
-                this.angle = _angle;
-            }
-            // Moves sprite image
-            var _ctx = this.sprite.canvas.getContext("2d");
-            _ctx.clearRect(0, 0, this.width, this.height);
-            _ctx.translate(this.width / 2, this.height / 2);
-            _ctx.rotate(_deg);
-            _ctx.drawImage(
-                this.sprite.sheet,
-                0,
-                0,
-                this.width,
-                this.height,
-                (-this.width / 2) + this.offset.x,
-                (-this.height / 2) + this.offset.y,
-                this.width,
-                this.height
-            );
-            _ctx.translate(-this.width / 2, -this.height / 2);
-            // Moves bounding boxes
-            if (this.physics.enabled && this.physics.collision.length > 0) {
-                var _col = this.physics.collision[0];
-                _col.c1 = Game.prototype.newPoint(_col.c1, this.center, _deg);
-                _col.c2 = Game.prototype.newPoint(_col.c2, this.center, _deg);
-                _col.c3 = Game.prototype.newPoint(_col.c3, this.center, _deg);
-                _col.c4 = Game.prototype.newPoint(_col.c4, this.center, _deg);
-            }
-        },
         worldCollision: function(enabled) {
             if (this.physics.enabled) {
                 this.physics.worldCollision = true;
@@ -381,7 +292,78 @@
                 }
             }
         },
-        accelerate: function(angle, thrust) {
+        setAngle: function(ang) {
+            var _deg = ang * Math.PI / 180;
+            var _angle = this.physics.angle += ang;
+            if (_angle > 360) {
+                this.physics.angle = _angle - 360;
+            } else if (_angle < 0) {
+                this.physics.angle = _angle + 360;
+            } else if (_angle == 360) {
+                this.physics.angle = 0;
+            } else {
+                this.physics.angle = _angle;
+            }
+            // Moves sprite image
+            var _ctx = this.sprite.canvas.getContext("2d");
+            _ctx.clearRect(0, 0, this.width, this.height);
+            _ctx.translate(this.width / 2, this.height / 2);
+            _ctx.rotate(_deg);
+            _ctx.drawImage(
+                this.sprite.sheet,
+                0,
+                0,
+                this.width,
+                this.height,
+                (-this.width / 2) + this.offset.x,
+                (-this.height / 2) + this.offset.y,
+                this.width,
+                this.height
+            );
+            _ctx.translate(-this.width / 2, -this.height / 2);
+            // Moves bounding boxes
+            if (this.physics.enabled && this.physics.collision.length > 0) {
+                var _col = this.physics.collision[0];
+                _col.c1 = Game.prototype.newPoint(_col.c1, this.center, _deg);
+                _col.c2 = Game.prototype.newPoint(_col.c2, this.center, _deg);
+                _col.c3 = Game.prototype.newPoint(_col.c3, this.center, _deg);
+                _col.c4 = Game.prototype.newPoint(_col.c4, this.center, _deg);
+            }
+        },
+        setAngularPhysics: function(aMax, aDrag, maxAccel, maxSpeed, drag) {
+            this.physics.angularMax = aMax;
+            this.physics.angularDrag = aDrag;
+            this.physics.maxAccel = maxAccel;
+            this.physics.maxSpeed = maxSpeed;
+            this.physics.drag = drag;
+        },
+        lockVelocityToRotation: function() {
+            this.physics.lockVelocityToRotation = true;
+        },
+        setAngularVelocity: function(thrust) {
+            var _p = this.physics;
+            if (_p.enabled) {
+                if (thrust > 0) {
+                    if (_p.angularVelocity < _p.angularMax) {
+                        _p.angularVelocity += thrust;
+                    }
+                }
+                if (thrust < 0) {
+                    if (_p.angularVelocity > -_p.angularMax) {
+                        _p.angularVelocity += thrust;
+                    }
+                }
+            } else { console.log("Physics have not been enabled on this sprite."); }
+        },
+        setVelocityFromAngle: function(angle, speed) {
+            var _p = this.physics;
+            if (_p.enabled) {
+                var _angle = (angle + 90) * Math.PI / 180;      // Convert to Radians
+                _p.velocity.x += Math.cos(_angle) * speed;
+                _p.velocity.y += Math.sin(_angle) * speed;
+            }
+        },
+        setAcceleration: function(angle, thrust) {
             var _p = this.physics;
             if (_p.enabled) {
                 if (_p.acceleration < _p.maxAccel) {
@@ -390,42 +372,7 @@
                 if (_p.speed < _p.maxSpeed) {
                     _p.speed += _p.acceleration;
                 }
-                this.setAngularVelocity(angle, _p.speed);
-            }
-        },
-        setAngularVelocity: function(angle, speed) {
-            if (this.physics.enabled) {
-                var _p = this.physics;
-                var _ang = (angle + 90) * Math.PI / 180;
-                _p.lockedAngle = angle;
-                _p.velocity = {
-                    x: Math.cos(_ang) * speed,
-                    y: Math.sin(_ang) * speed
-                }
-            }
-        },
-        setAngularMomentum: function(thrust) {
-            var _p = this.physics;
-            if (_p.enabled) {
-                if (thrust > 0) {
-                    if (_p.angularMomentum < _p.angularMax) {
-                        _p.angularMomentum += thrust;
-                    }
-                }
-                if (thrust < 0) {
-                    if (_p.angularMomentum > -_p.angularMax) {
-                        _p.angularMomentum += thrust;
-                    }
-                }
-            }
-        },
-        setAngularPhysics: function(aMax, aDrag, maxSpeed, drag) {
-            this.physics.angularMax = aMax;
-            this.physics.angularDrag = aDrag;
-            this.physics.maxSpeed = maxSpeed;
-            this.physics.drag = drag;
-        },
-        lockAngularVelocity: function() {
-            this.physics.lockAngularVelocity = true;
+                this.setVelocityFromAngle(angle, _p.speed);
+            } else { console.log("Physics have not been enabled on this sprite."); }
         }
     }
