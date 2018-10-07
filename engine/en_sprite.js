@@ -20,10 +20,8 @@
                 x: 0,
                 y: 0
             },
-            acceleration: 0,
-            maxAccel: 0,
+            maxVelocity: 0,
             speed: 0,
-            maxSpeed: 0,
             drag: 0,
             lockVelocityToRotation: false,
             angularVelocity: 0,
@@ -130,27 +128,38 @@
             //=======================================================//
 
             //=======================================================//
-            // All things velocity
+            // START All things velocity
             //=======================================================//
-
 
                     if (_p.angularVelocity > 0) { _p.angularVelocity -= _p.angularDrag; }
                     if (_p.angularVelocity < 0) { _p.angularVelocity += _p.angularDrag; }
                     _p.angularVelocity = Game.prototype.round(_p.angularVelocity, 2);
                     
                     this.setAngle(_p.angularVelocity);
-                    _p.angle = Game.prototype.round(_p.angle, 2);
-                    if (_p.speed > 0) {
-                        _p.speed -= _p.drag;
-                    } else { _p.speed = 0; }
-                    this.x -= _p.velocity.x / this.fps;
-                    this.y -= _p.velocity.y / this.fps;
-                    this.world.x -= _p.velocity.x / this.fps;
-                    this.world.y -= _p.velocity.y / this.fps;
-                
+                    
+                    if (_p.thrust == 0) {
+                        _p.velocity.x -= (_p.drag / 10) * _p.velocity.x;
+                        _p.velocity.y -= (_p.drag / 10) * _p.velocity.y;
+                    }
+
+                    if (_p.lockVelocityToRotation) {} else {
+                        this.x -= _p.velocity.x / this.fps;
+                        this.y -= _p.velocity.y / this.fps;
+                        this.world.x -= _p.velocity.x / this.fps;
+                        this.world.y -= _p.velocity.y / this.fps;
+                    }
+
+                    // Calculates speed from velocity
+                    if (_p.velocity.x == 0) {
+                        _p.speed = _p.velocity.y;
+                    } else if (_p.velocity.y == 0) {
+                        _p.speed = _p.velocity.x;
+                    } else {
+                        _p.speed = Math.sqrt(Math.pow(_p.velocity.x, 2) + (_p.velocity.y, 2))
+                    }
 
             //=======================================================//
-            // All things velocity
+            // END All things velocity
             //=======================================================//
 
                 // Tracks which cell the sprite is in
@@ -165,8 +174,8 @@
                     }
                 }
             }
-            // Cleans up coordinates once moment has "stopped"
-            if (_p.speed < 0.1) {
+            // Cleans up coordinates once movement has "stopped"
+            if (Math.round(_p.speed) == 1) {
                 this.x = Math.round(this.x);
                 this.y = Math.round(this.y);
                 this.world.x = Math.round(this.world.x);
@@ -199,11 +208,10 @@
                 context.fillText("Screen Position: (" + this.x + ", " + this.y + ")", this.debugData.x, this.debugData.y + 12);
                 context.fillText("Health: " + this.health.cur + "/" + this.health.tot, this.debugData.x, this.debugData.y + 24);
                 if (this.physics.enabled) { var _physics = "Enabled"; } else { var _physics = "Disabled"; }
-                context.fillText("Physics: " + _physics, this.debugData.x, this.debugData.y + 36);
-                context.fillText("Angle: " + this.physics.angle, this.debugData.x, this.debugData.y + 48);
-                context.fillText("Angular Velocity: " + this.physics.angularVelocity, this.debugData.x, this.debugData.y + 60);
-                context.fillText("Acceleration: " + this.physics.acceleration, this.debugData.x, this.debugData.y + 72);
-                context.fillText("Speed: " + this.physics.speed, this.debugData.x, this.debugData.y + 84);
+                context.fillText("Physics: " + _physics, this.debugData.x, this.debugData.y + 48);
+                context.fillText("Angle: " + Math.round(this.physics.angle), this.debugData.x, this.debugData.y + 60);
+                context.fillText("Angular Velocity: " + this.physics.angularVelocity, this.debugData.x, this.debugData.y + 72);
+                context.fillText("Speed: " + Math.round(this.physics.speed - 1), this.debugData.x, this.debugData.y + 86);
                 context.fillText("Velocity: " + Game.prototype.round(this.physics.velocity.x, 2) + ", " + Game.prototype.round(this.physics.velocity.y, 2), this.debugData.x, this.debugData.y + 96);
                 context.restore();
                 if (this.physics.enabled) {
@@ -330,49 +338,52 @@
                 _col.c4 = Game.prototype.newPoint(_col.c4, this.center, _deg);
             }
         },
-        setAngularPhysics: function(aMax, aDrag, maxAccel, maxSpeed, drag) {
-            this.physics.angularMax = aMax;
-            this.physics.angularDrag = aDrag;
-            this.physics.maxAccel = maxAccel;
-            this.physics.maxSpeed = maxSpeed;
-            this.physics.drag = drag;
-        },
         lockVelocityToRotation: function() {
             this.physics.lockVelocityToRotation = true;
         },
-        setAngularVelocity: function(thrust) {
+        setAngularVelocity: function(_thrust) {
             var _p = this.physics;
             if (_p.enabled) {
-                if (thrust > 0) {
+                if (_thrust > 0) {
                     if (_p.angularVelocity < _p.angularMax) {
-                        _p.angularVelocity += thrust;
+                        _p.angularVelocity += _thrust;
                     }
                 }
-                if (thrust < 0) {
+                if (_thrust < 0) {
                     if (_p.angularVelocity > -_p.angularMax) {
-                        _p.angularVelocity += thrust;
+                        _p.angularVelocity += _thrust;
                     }
                 }
             } else { console.log("Physics have not been enabled on this sprite."); }
         },
-        setVelocityFromAngle: function(angle, speed) {
+        setVelocityFromAngle: function(angle, _thrust) {
             var _p = this.physics;
             if (_p.enabled) {
+                _p.thrust = _thrust; // Tracks whether thrust is being applied
                 var _angle = (angle + 90) * Math.PI / 180;      // Convert to Radians
-                _p.velocity.x += Math.cos(_angle) * speed;
-                _p.velocity.y += Math.sin(_angle) * speed;
+
+                // Add thrust to velocity
+                _p.velocity.x += Math.cos(_angle) * _thrust;
+                _p.velocity.y += Math.sin(_angle) * _thrust;
+
+                // Make sure velocity hasn't exceeded limits
+                if (_p.velocity.x > _p.maxVelocity) {
+                    _p.velocity.x = _p.maxVelocity;
+                } else if (_p.velocity.x < -_p.maxVelocity) {
+                    _p.velocity.x = -_p.maxVelocity;
+                }
+
+                if (_p.velocity.y > _p.maxVelocity) {
+                    _p.velocity.y = _p.maxVelocity;
+                } else if (_p.velocity.y < -_p.maxVelocity) {
+                    _p.velocity.y = -_p.maxVelocity;
+                }
             }
         },
-        setAcceleration: function(angle, thrust) {
-            var _p = this.physics;
-            if (_p.enabled) {
-                if (_p.acceleration < _p.maxAccel) {
-                    _p.acceleration += thrust;
-                }
-                if (_p.speed < _p.maxSpeed) {
-                    _p.speed += _p.acceleration;
-                }
-                this.setVelocityFromAngle(angle, _p.speed);
-            } else { console.log("Physics have not been enabled on this sprite."); }
+        setAngularPhysics: function(aMax, aDrag, maxVel, drag) {
+            this.physics.angularMax = aMax;
+            this.physics.angularDrag = aDrag;
+            this.physics.maxVelocity = maxVel;
+            this.physics.drag = drag;
         }
     }
