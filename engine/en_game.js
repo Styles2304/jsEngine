@@ -247,3 +247,13 @@
         }
         return _result;
     }
+    Game.prototype.round = function(num, decimal) {
+        var _places;
+
+        switch (decimal) {
+            case 1: _places = 1e1; break;
+            case 2: _places = 1e2; break;
+            case 3: _places = 1e3; break;
+        }
+        return Math.round((num) * _places) / _places;
+    }
