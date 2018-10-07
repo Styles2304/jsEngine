@@ -15,17 +15,14 @@ eDev.game.states.Game.prototype = {
         this.sprite.currentWorld = this.world;
         this.world.createCells(400, 300);
 
-    // ==== Angular Physics Start ========================================//
-
         this.sprite.setAngularPhysics(
             10,     // Max Angular Velocity
-            0.25,   // Angular Drag
-            0.25,   // Max Accel
-            10,     // Max Speed
-            0.25    // Drag
+            0.1,    // Angular Drag
+            100,     // Max Velocity in pixels per second
+            0.25     // Drag
         );
 
-    // ==== Angular Physics End ==========================================//
+        // this.sprite.lockVelocityToRotation();
 
         this.sprite.debugSprite();
         this.world.debugWorld();
@@ -34,11 +31,11 @@ eDev.game.states.Game.prototype = {
         var _p = this.sprite.physics;
 
         if (this.g.controls.up) {
-            this.sprite.setAcceleration(_p.angle, 0.5);
-        } else { _p.acceleration = 0; }
+            this.sprite.setVelocityFromAngle(_p.angle, 5);
+        } else { _p.thrust = 0; }
 
         if (this.g.controls.down) {
-            this.sprite.setAcceleration2(_p.angle, 10);
+            this.sprite.setVelocityFromAngle(_p.angle - 180, 5);
         }
 
         if (this.g.controls.left) {
