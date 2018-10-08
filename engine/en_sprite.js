@@ -20,7 +20,10 @@
                 x: 0,
                 y: 0
             },
-            maxVelocity: 0,
+            maxVelocity: {
+                x: 0,
+                y: 0
+            },
             speed: 0,
             drag: 0,
             lockVelocityToRotation: false,
@@ -142,12 +145,10 @@
                         _p.velocity.y -= (_p.drag / 10) * _p.velocity.y;
                     }
 
-                    if (_p.lockVelocityToRotation) {} else {
-                        this.x -= _p.velocity.x / this.fps;
-                        this.y -= _p.velocity.y / this.fps;
-                        this.world.x -= _p.velocity.x / this.fps;
-                        this.world.y -= _p.velocity.y / this.fps;
-                    }
+                    this.x -= _p.velocity.x / this.fps;
+                    this.y -= _p.velocity.y / this.fps;
+                    this.world.x -= _p.velocity.x / this.fps;
+                    this.world.y -= _p.velocity.y / this.fps;
 
                     // Calculates speed from velocity
                     if (_p.velocity.x == 0) {
@@ -367,23 +368,26 @@
                 _p.velocity.y += Math.sin(_angle) * _thrust;
 
                 // Make sure velocity hasn't exceeded limits
-                if (_p.velocity.x > _p.maxVelocity) {
-                    _p.velocity.x = _p.maxVelocity;
-                } else if (_p.velocity.x < -_p.maxVelocity) {
-                    _p.velocity.x = -_p.maxVelocity;
+                if (_p.velocity.x > _p.maxVelocity.x) {
+                    _p.velocity.x = _p.maxVelocity.x;
+                } else if (_p.velocity.x < -_p.maxVelocity.x) {
+                    _p.velocity.x = -_p.maxVelocity.x;
                 }
 
-                if (_p.velocity.y > _p.maxVelocity) {
-                    _p.velocity.y = _p.maxVelocity;
-                } else if (_p.velocity.y < -_p.maxVelocity) {
-                    _p.velocity.y = -_p.maxVelocity;
+                if (_p.velocity.y > _p.maxVelocity.y) {
+                    _p.velocity.y = _p.maxVelocity.y;
+                } else if (_p.velocity.y < -_p.maxVelocity.y) {
+                    _p.velocity.y = -_p.maxVelocity.y;
                 }
             }
         },
         setAngularPhysics: function(aMax, aDrag, maxVel, drag) {
             this.physics.angularMax = aMax;
             this.physics.angularDrag = aDrag;
-            this.physics.maxVelocity = maxVel;
+            this.physics.maxVelocity = {
+                x: maxVel[0],
+                y: maxVel[1]
+            };
             this.physics.drag = drag;
         }
     }
