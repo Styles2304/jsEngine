@@ -3,52 +3,19 @@
 eDev.game.states.Game.prototype = {
     g: eDev.game,
     ctx: eDev.game.CONTEXT,
-    world: eDev.game.states.Game.currentWorld,
-    sprite: new Sprite(eDev.game.center.x, eDev.game.center.y, 25, 25, eDev.game.FPS),
+    currentWorld: eDev.game.states.Game.currentWorld,
+    camera: eDev.game.states.Game.currentWorld.camera,
+    // sprite: new Ship(eDev.game.center.x, eDev.game.center.y, 34, 34, eDev.game.FPS),
     start: function() { console.log("Game State"); },
     init: function() {
-        this.sprite.enablePhysics();
+        this.currentWorld.resize(1600, 1600);
+        this.currentWorld.createCells(400, 300);
+        
+        this.player = this.currentWorld.addSprite(Ship, this.g.center.x, this.g.center.y, 34, 34, this.g.FPS);
 
-        this.sprite.setAnchor(this.sprite.center.x, this.sprite.center.y);
-        this.sprite.setOffset(2,2);
-
-        this.sprite.currentWorld = this.world;
-        this.world.createCells(400, 300);
-
-        this.sprite.setAngularPhysics(
-            10,     // Max Angular Velocity
-            0.1,    // Angular Drag
-            [200, 200],     // Max Velocity in pixels per second
-            0.7     // Drag
-        );
-
-        this.sprite.lockVelocityToRotation();
-
-        this.sprite.debugSprite();
-        this.world.debugWorld();
+        this.currentWorld.enableCamera(true, 0, 0, this.g.WIDTH, this.g.HEIGHT, 0, 0, this.player);
+        this.currentWorld.debugWorld();
     },
-    update: function() {
-        var _p = this.sprite.physics;
-
-        if (this.g.controls.up) {
-            this.sprite.setVelocityFromAngle(_p.angle, 5);
-        } else { _p.thrust = 0; }
-
-        if (this.g.controls.down) {
-            this.sprite.setVelocityFromAngle(_p.angle - 180, 2);
-        }
-
-        if (this.g.controls.left) {
-            this.sprite.setAngularVelocity(-0.5);
-        }
-
-        if (this.g.controls.right) {
-            this.sprite.setAngularVelocity(0.5);
-        }
-
-        this.sprite.update();
-    },
-    draw: function() {
-        this.sprite.draw(this.ctx);
-    }
+    update: function() {},
+    draw: function() {}
 }

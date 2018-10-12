@@ -1,0 +1,94 @@
+//===========================================================//
+// World
+//===========================================================//
+    //=========================================//
+    // Properties
+    //=========================================//
+        - key
+        - x
+        - y
+        - width
+        - height
+        - center.x
+        - center.y
+        - cells: array
+        - sprites: array
+        - debug: boolean
+    //=========================================//
+    // Methods
+    //=========================================//
+        - debugWorld()
+        - addCell(x, y, width, height) // Don't use
+        - createCells(width, height)
+        - addSprite(type, x, y, width, height, fps)
+        - resize(width, height)
+        - enableCamera(enable, x, y, width, height, worldX, worldY, follow)
+
+
+//===========================================================//
+// Sprite
+//===========================================================//
+    //=========================================//
+    // Properties
+    //=========================================//
+        - width
+        - height
+        - health.cur
+        - health.tot
+        - fps
+        - currentWorld: boolean
+        - worldBounce: boolean
+        - currentCell
+        - center.x
+        - center.y
+        - x
+        - y
+        - world.x
+        - world.y
+        - anchor.x
+        - anchor.y
+        - offset.x
+        - offset.y
+        - physics.enabled: boolean
+        - physics.collision: array
+        - physics.collideWithWorld: boolean
+        - physics.angle
+        - physics.velocity.x
+        - physics.velocity.y
+        - physics.maxVelocity
+        - physics.acceleration
+        - physics.drag
+        - physics.lockVelocityRotation: boolean
+        - physics.angularVelocity
+        - physics.angularMax
+        - physics.angularDrag
+        - animation.current
+        - animation.ticks
+        - animation.index
+        - sprite.sheet: canvas
+        - sprite.canvas: canvas
+        - sprite.animations.animationList: array
+        - sprite.animations.{animation}.ref
+        - sprite.animations.{animation}.speed
+        - sprite.animations.{animation}.loop: array
+        - sprite.animations.{animation}.frames.{frame}: array
+        - debug
+        - debugData.x
+        - debugData.y
+        - debugData.rgb
+
+    //=========================================//
+    // Methods
+    //=========================================//
+        - enablePhysics([advanced: boolean])
+        - addCollider(x, y, width, height)
+        - setAnchor(x, y) // Relative to sprite
+        - setOffset(x, y) // Relative to sprite
+        - collideWithWorld(bounce: boolean)
+        - outOfBounds(world: object)
+        - setAngle(angle: degrees)
+        - lockVelocityToRotation()
+        - setAngularVelocity(thrust)
+        - setVelocityFromAngle(angle: degrees, velocity: array)
+        - setLockedVelocityFromAngle(thrust)
+        - setAngularPhysics(angularMax, angularDrag, maxVelocity, drag)
