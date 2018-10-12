@@ -5,59 +5,35 @@
     let Sprite = function(x, y, width, height, fps) {
         this.width = width || 25;
         this.height = height || 25;
-        this.health = {
-            cur: 100,
-            tot: 100
-        }
+        this.health = { cur: 100, tot: 100 }
         this.fps = fps;
-        this.physics = {
-            enabled: false,
-            collision: Array(),
-            collideWithWorld: false,
-            angle: 0,
-            thrust: 0,
-            velocity: {
-                x: 0,
-                y: 0
-            },
-            maxVelocity: {
-                x: 0,
-                y: 0
-            },
-            speed: 0,
-            drag: 0,
-            lockVelocityToRotation: false,
-            angularVelocity: 0,
-            angularMax: 0,
-            angularDrag: 0,
-
-            worldCollision: false
-        }
         this.currentWorld = null;
-        this.currentCell = null;
         this.center = {
             x: Math.floor(this.width / 2),
             y: Math.floor(this.height / 2)
         }
         this.x = x;
         this.y = y;
-        this.world = {
-            x: x,
-            y: y
-        }
-        this.anchor = {
-            x: 0,
-            y: 0
-        }
-        this.offset = {
-            x: 0,
-            y: 0
-        }
-        this.debug = false;
-        this.debugData = {
-            x: 0,
-            y: 0,
-            rgb: "0,0,0"
+        this.world = { x: x, y: y }
+        this.anchor = { x: 0, y: 0 }
+        this.offset = { x: 0, y: 0 }
+        this.physics = {
+            enabled: false,
+            collision: Array(),
+            collideWithWorld: false,
+            worldBounce: false,
+            angle: 0,
+            velocity: {
+                x: 0,
+                y: 0
+            },
+            maxVelocity: 0,
+            acceleration: 0,
+            drag: 0,
+            lockVelocityToRotation: false,
+            angularVelocity: 0,
+            angularMax: 0,
+            angularDrag: 0,
         }
         this.animation = {
             current: "idle",
@@ -79,12 +55,19 @@
                 }
             }
         }
-
-        Game.prototype.drawSpriteSheet(this);
-        this.sprite.canvas.getContext("2d").drawImage(this.sprite.sheet, 0, 0);
+        this.debug = false;
+        this.debugData = {
+            x: 0,
+            y: 0,
+            rgb: "0,0,0"
+        }
     }
 
     Sprite.prototype = {
+        init: function() {
+            Game.prototype.drawSpriteSheet(this);
+            this.sprite.canvas.getContext("2d").drawImage(this.sprite.sheet, 0, 0);
+        },
         debugSprite: function(rgb, x, y) {
             this.debug = true;
 
@@ -97,91 +80,184 @@
             this.debugData.rgb = rgb;
         },
         update: function() {
-            this.animation.ticks++;
-            if (this.animation.ticks >= this.sprite.animations[this.animation.current].speed) {
-                this.animation.ticks = 0;
-                this.animation.index++;
-            }
-            if (this.animation.index >= this.sprite.animations[this.animation.current].loop.length) {
-                this.animation.index = 0;
-            }
-
-            if (this.physics.enabled) {
-                var _p = this.physics;
-                var _col = _p.collision[0];
-                var _worldCol = _p.collision[0].world;
-
-                // Convert bounding box into world coordinates
-                _worldCol.c1.x = (this.world.x - this.anchor.x) + _col.c1.x;
-                _worldCol.c1.y = (this.world.y - this.anchor.y) + _col.c1.y;
-                _worldCol.c2.x = (this.world.x - this.anchor.x) + _col.c2.x;
-                _worldCol.c2.y = (this.world.y - this.anchor.y) + _col.c2.y;
-                _worldCol.c3.x = (this.world.x - this.anchor.x) + _col.c3.x;
-                _worldCol.c3.y = (this.world.y - this.anchor.y) + _col.c3.y;
-                _worldCol.c4.x = (this.world.x - this.anchor.x) + _col.c4.x;
-                _worldCol.c4.y = (this.world.y - this.anchor.y) + _col.c4.y;
+            //=======================================================//
+            // Sprite Animation
+            //=======================================================//
+                this.animation.ticks++;
+                if (this.animation.ticks >= this.sprite.animations[this.animation.current].speed) {
+                    this.animation.ticks = 0;
+                    this.animation.index++;
+                }
+                if (this.animation.index >= this.sprite.animations[this.animation.current].loop.length) {
+                    this.animation.index = 0;
+                }
 
             //=======================================================//
-            //
-            // Handles world boundaries collision
-            //  if (_p.worldCollision) {
-            //
-            //  }
-            //
+            // Physics
             //=======================================================//
+                const _p = this.physics;
+                if (this.physics.enabled) {
+                    var _col = _p.collision[0];
+                    var _worldCol = _p.collision[0].world;
 
-            //=======================================================//
-            // START All things velocity
-            //=======================================================//
+                //=======================================================//
+                // World Collision
+                //=======================================================//
+                    if (_p.collideWithWorld) {
+                        // Convert bounding box into world coordinates
+                        _worldCol.c1.x = (this.world.x - this.anchor.x) + _col.c1.x;
+                        _worldCol.c1.y = (this.world.y - this.anchor.y) + _col.c1.y;
+                        _worldCol.c2.x = (this.world.x - this.anchor.x) + _col.c2.x;
+                        _worldCol.c2.y = (this.world.y - this.anchor.y) + _col.c2.y;
+                        _worldCol.c3.x = (this.world.x - this.anchor.x) + _col.c3.x;
+                        _worldCol.c3.y = (this.world.y - this.anchor.y) + _col.c3.y;
+                        _worldCol.c4.x = (this.world.x - this.anchor.x) + _col.c4.x;
+                        _worldCol.c4.y = (this.world.y - this.anchor.y) + _col.c4.y;
 
+                        // Left Bounds
+                        if (
+                            _worldCol.c1.x <= 0 ||
+                            _worldCol.c2.x <= 0 ||
+                            _worldCol.c3.x <= 0 ||
+                            _worldCol.c4.x <= 0
+                        ) {
+                            if (_p.lockVelocityToRotation) {
+                                _p.acceleration = 0;
+                                if (_p.angle > 180 && _p.angle < 360 ) {
+                                    _p.acceleration -= 100;
+                                } else {
+                                    _p.acceleration += 100;
+                                }
+                            } else {
+                                _p.velocity.x = 0;
+                                if (_p.worldBounce) { _p.velocity.x -= 100; }
+                            }
+                        }
+
+                        // Right Bounds
+                        if (
+                            _worldCol.c1.x >= this.currentWorld.width ||
+                            _worldCol.c2.x >= this.currentWorld.width ||
+                            _worldCol.c3.x >= this.currentWorld.width ||
+                            _worldCol.c4.x >= this.currentWorld.width
+                        ) {
+                            if (_p.lockVelocityToRotation) {
+                                _p.acceleration = 0;
+                                if (_p.angle >= 0 && _p.angle <= 180 ) {
+                                    _p.acceleration -= 100;
+                                } else {
+                                    _p.acceleration += 100;
+                                }
+                            } else {
+                                _p.velocity.x = 0;
+                                if (_p.worldBounce) { _p.velocity.x += 100; }
+                            }
+                        }
+
+                        // Top Bounds
+                        if (
+                            _worldCol.c1.y <= 0 ||
+                            _worldCol.c2.y <= 0 ||
+                            _worldCol.c3.y <= 0 ||
+                            _worldCol.c4.y <= 0
+                        ) {
+                            if (_p.lockVelocityToRotation) {
+                                _p.acceleration = 0;
+                                if (_p.angle > 270 && _p.angle < 360 ||
+                                    _p.angle >= 0 && _p.angle < 90
+                                ) {
+                                    _p.acceleration -= 100;
+                                } else {
+                                    _p.acceleration += 100;
+                                }
+                            } else {
+                                _p.velocity.y = 0;
+                                if (_p.worldBounce) { _p.velocity.y -= 100; }
+                            }
+                        }
+
+                        // Bottom Bounds
+                        if (
+                            _worldCol.c1.y >= this.currentWorld.height ||
+                            _worldCol.c2.y >= this.currentWorld.height ||
+                            _worldCol.c3.y >= this.currentWorld.height ||
+                            _worldCol.c4.y >= this.currentWorld.height
+                        ) {
+                            if (_p.lockVelocityToRotation) {
+                                _p.acceleration = 0;
+                                if (_p.angle >= 90 && _p.angle <= 270 ) {
+                                    _p.acceleration -= 100;
+                                } else {
+                                    _p.acceleration += 100;
+                                }
+                            } else {
+                                _p.velocity.y = 0;
+                                if (_p.worldBounce) { _p.velocity.y += 100; }
+                            }
+                        }
+                    }
+
+                //=======================================================//
+                // Velocity and Drag
+                //=======================================================//
                     if (_p.angularVelocity > 0) { _p.angularVelocity -= _p.angularDrag; }
                     if (_p.angularVelocity < 0) { _p.angularVelocity += _p.angularDrag; }
                     _p.angularVelocity = Game.prototype.round(_p.angularVelocity, 2);
                     
                     this.setAngle(_p.angularVelocity);
                     
-                    if (_p.thrust == 0) {
-                        _p.velocity.x -= (_p.drag / 10) * _p.velocity.x;
-                        _p.velocity.y -= (_p.drag / 10) * _p.velocity.y;
+                    if (_p.thrusting == 0) {
+                        if (_p.lockVelocityToRotation) {
+                            if (_p.acceleration - (_p.drag / 10) <= 1) {
+                                _p.acceleration = 0;
+                            } else {
+                                _p.acceleration -= (_p.drag / 10) * _p.acceleration;
+                                _p.acceleration = Game.prototype.round(_p.acceleration, 2);
+                            }
+                        } else {
+                            _p.velocity.x -= (_p.drag / 10) * _p.velocity.x;
+                            _p.velocity.y -= (_p.drag / 10) * _p.velocity.y;
+                        }
                     }
 
-                    this.x -= _p.velocity.x / this.fps;
-                    this.y -= _p.velocity.y / this.fps;
-                    this.world.x -= _p.velocity.x / this.fps;
-                    this.world.y -= _p.velocity.y / this.fps;
-
-                    // Calculates speed from velocity
-                    if (_p.velocity.x == 0) {
-                        _p.speed = _p.velocity.y;
-                    } else if (_p.velocity.y == 0) {
-                        _p.speed = _p.velocity.x;
+                    if (_p.lockVelocityToRotation) {
+                        var _ang = (_p.angle + 90) * Math.PI / 180;
+                        this.world.x -= Math.cos(_ang) * _p.acceleration / this.fps;
+                        this.world.y -= Math.sin(_ang) * _p.acceleration / this.fps;
+                        this.x -= Math.cos(_ang) * _p.acceleration / this.fps;
+                        this.y -= Math.sin(_ang) * _p.acceleration / this.fps;
                     } else {
-                        _p.speed = Math.sqrt(Math.pow(_p.velocity.x, 2) + (_p.velocity.y, 2))
+                        this.x -= _p.velocity.x / this.fps;
+                        this.y -= _p.velocity.y / this.fps;
+                        this.world.x -= _p.velocity.x / this.fps;
+                        this.world.y -= _p.velocity.y / this.fps;
                     }
 
+                //=======================================================//
+                // Cell Tracking
+                //=======================================================//
+                }
+            
             //=======================================================//
-            // END All things velocity
+            // Coordinate "Cleanup"
             //=======================================================//
+                if (_p.lockVelocityToRotation) {
+                    if (Math.round(_p.acceleration) <= 1) {
+                        this.x = Math.round(this.x);
+                        this.y = Math.round(this.y);
+                        this.world.x = Math.round(this.world.x);
+                        this.world.y = Math.round(this.world.y);
+                    }
+                } else {
+                    if ((Math.sign(_p.velocity.x) * _p.velocity.x) < 0.5 &&
+                        (Math.sign(_p.velocity.y) * _p.velocity.y) < 0.5) {
 
-                // Tracks which cell the sprite is in
-                for (var a = 0; a < this.currentWorld.cells.length; a++) {
-                    var _cell = this.currentWorld.cells[a];
-                    if (this.x > _cell.x &&
-                        this.x < _cell.x + _cell.width &&
-                        this.y > _cell.y &&
-                        this.y < _cell.y + _cell.height) {
-                        
-                        this.currentCell = _cell.key;
+                        this.x = Math.round(this.x);
+                        this.y = Math.round(this.y);
+                        this.world.x = Math.round(this.world.x);
+                        this.world.y = Math.round(this.world.y);
                     }
                 }
-            }
-            // Cleans up coordinates once movement has "stopped"
-            if (Math.round(_p.speed) == 1) {
-                this.x = Math.round(this.x);
-                this.y = Math.round(this.y);
-                this.world.x = Math.round(this.world.x);
-                this.world.y = Math.round(this.world.y);
-            }
         },
         draw: function(context) {
             var _sprite = this.sprite;
@@ -198,42 +274,46 @@
                 this.width,
                 this.height
             );
-            if (this.debug) {
-                context.save();
-                context.font = "12px Courier";
-                context.shadowColor = "rgb(0,0,0)";
-                context.shadowOffsetX = 2;
-                context.shadowOffsetY = 2;
-                context.fillStyle = "rgb(" + this.debugData.rgb + ")";
-                context.fillText("World Position: (" + this.world.x + ", " + this.world.y + ")", this.debugData.x, this.debugData.y);
-                context.fillText("Screen Position: (" + this.x + ", " + this.y + ")", this.debugData.x, this.debugData.y + 12);
-                context.fillText("Health: " + this.health.cur + "/" + this.health.tot, this.debugData.x, this.debugData.y + 24);
-                if (this.physics.enabled) { var _physics = "Enabled"; } else { var _physics = "Disabled"; }
-                context.fillText("Physics: " + _physics, this.debugData.x, this.debugData.y + 48);
-                context.fillText("Angle: " + Math.round(this.physics.angle), this.debugData.x, this.debugData.y + 60);
-                context.fillText("Angular Velocity: " + this.physics.angularVelocity, this.debugData.x, this.debugData.y + 72);
-                context.fillText("Speed: " + Math.round(this.physics.speed - 1), this.debugData.x, this.debugData.y + 86);
-                context.fillText("Velocity: " + Game.prototype.round(this.physics.velocity.x, 2) + ", " + Game.prototype.round(this.physics.velocity.y, 2), this.debugData.x, this.debugData.y + 96);
-                context.restore();
-                if (this.physics.enabled) {
-                    for (var a = 0; a < this.physics.collision.length; a++) {
-                        var _col = this.physics.collision;
-                        context.strokeStyle = "rgb(255,0,255)";
-                        context.beginPath();
-                        context.moveTo((this.x - this.anchor.x) + _col[a].c1.x,(this.y - this.anchor.y) + _col[a].c1.y);
-                        context.lineTo((this.x - this.anchor.x) + _col[a].c2.x,(this.y - this.anchor.y) + _col[a].c2.y);
-                        context.lineTo((this.x - this.anchor.x) + _col[a].c3.x,(this.y - this.anchor.y) + _col[a].c3.y);
-                        context.lineTo((this.x - this.anchor.x) + _col[a].c4.x,(this.y - this.anchor.y) + _col[a].c4.y);
-                        context.lineTo((this.x - this.anchor.x) + _col[a].c1.x,(this.y - this.anchor.y) + _col[a].c1.y);
-                        context.stroke();
+
+            //=======================================================//
+            // Debug
+            //=======================================================//
+                if (this.debug) {
+                    context.save();
+                    context.font = "12px Courier";
+                    context.shadowColor = "rgb(0,0,0)";
+                    context.shadowOffsetX = 2;
+                    context.shadowOffsetY = 2;
+                    context.fillStyle = "rgb(" + this.debugData.rgb + ")";
+                    context.fillText("World Position: (" + this.world.x + ", " + this.world.y + ")", this.debugData.x, this.debugData.y);
+                    context.fillText("Screen Position: (" + this.x + ", " + this.y + ")", this.debugData.x, this.debugData.y + 12);
+                    context.fillText("Health: " + this.health.cur + "/" + this.health.tot, this.debugData.x, this.debugData.y + 24);
+                    if (this.physics.enabled) { var _physics = "Enabled"; } else { var _physics = "Disabled"; }
+                    context.fillText("Physics: " + _physics, this.debugData.x, this.debugData.y + 48);
+                    context.fillText("Angle: " + Math.round(this.physics.angle), this.debugData.x, this.debugData.y + 60);
+                    context.fillText("Angular Velocity: " + this.physics.angularVelocity, this.debugData.x, this.debugData.y + 72);
+                    context.fillText("Velocity: " + Game.prototype.round(this.physics.velocity.x, 2) + ", " + Game.prototype.round(this.physics.velocity.y, 2), this.debugData.x, this.debugData.y + 84);
+                    context.fillText("Acceleration: " + this.physics.acceleration, this.debugData.x, this.debugData.y + 96);
+                    context.restore();
+                    if (this.physics.enabled) {
+                        for (var a = 0; a < this.physics.collision.length; a++) {
+                            var _col = this.physics.collision;
+                            context.strokeStyle = "rgb(255,0,255)";
+                            context.beginPath();
+                            context.moveTo((this.x - this.anchor.x) + _col[a].c1.x,(this.y - this.anchor.y) + _col[a].c1.y);
+                            context.lineTo((this.x - this.anchor.x) + _col[a].c2.x,(this.y - this.anchor.y) + _col[a].c2.y);
+                            context.lineTo((this.x - this.anchor.x) + _col[a].c3.x,(this.y - this.anchor.y) + _col[a].c3.y);
+                            context.lineTo((this.x - this.anchor.x) + _col[a].c4.x,(this.y - this.anchor.y) + _col[a].c4.y);
+                            context.lineTo((this.x - this.anchor.x) + _col[a].c1.x,(this.y - this.anchor.y) + _col[a].c1.y);
+                            context.stroke();
+                        }
+                        context.strokeStyle = "rgb(255,255,0)";
+                        context.strokeRect(this.x - 2, this.y - 2, 5, 5);
                     }
-                    context.fillStyle = "rgb(255,0,0)";
-                    context.fillRect(this.x - 1, this.y - 1, 3, 3);
-                    context.fillStyle = "rgb(0,255,0)";
-                    context.fillRect(this.physics.collision[0].world.x, this.physics.collision[0].world.y, 3, 3);
                 }
-            }
         },
+        sleep: function() { /* executed on sleep */ },
+        wakeup: function() { /* executed on wakeup */ },
         enablePhysics: function(advanced) {
             this.physics.enabled = true;
             advanced = advanced || false;
@@ -271,12 +351,14 @@
             _ctx.clearRect(0, 0, this.width, this.height);
             _ctx.drawImage(this.sprite.sheet, this.offset.x, this.offset.y);
         },
-        worldCollision: function(enabled) {
-            if (this.physics.enabled) {
-                this.physics.worldCollision = true;
+        collideWithWorld: function(bounce) {
+            bounce = bounce || false;
+            this.physics.collideWithWorld = true;
+            if (bounce) {
+                this.physics.worldBounce = true;
             }
         },
-        outOfBounds: function(world) {
+        outOfBounds: function(world) {  // Unnecessary?
             if (this.physics.enabled) {
                 for (var a = 0; a < this.physics.collision.length; a++) {
                     var _wCol = this.physics.collision[0].world;
@@ -342,52 +424,59 @@
         lockVelocityToRotation: function() {
             this.physics.lockVelocityToRotation = true;
         },
-        setAngularVelocity: function(_thrust) {
+        setAngularVelocity: function(thrust) {
             var _p = this.physics;
             if (_p.enabled) {
-                if (_thrust > 0) {
+                if (thrust > 0) {
                     if (_p.angularVelocity < _p.angularMax) {
-                        _p.angularVelocity += _thrust;
+                        _p.angularVelocity += thrust;
                     }
                 }
-                if (_thrust < 0) {
+                if (thrust < 0) {
                     if (_p.angularVelocity > -_p.angularMax) {
-                        _p.angularVelocity += _thrust;
+                        _p.angularVelocity += thrust;
                     }
                 }
             } else { console.log("Physics have not been enabled on this sprite."); }
         },
-        setVelocityFromAngle: function(angle, _thrust) {
+        setVelocityFromAngle: function(angle, velocity) {
             var _p = this.physics;
             if (_p.enabled) {
-                _p.thrust = _thrust; // Tracks whether thrust is being applied
+                _p.thrusting = 1; // Tracks whether thrust is being applied
                 var _angle = (angle + 90) * Math.PI / 180;      // Convert to Radians
 
                 // Add thrust to velocity
-                _p.velocity.x += Math.cos(_angle) * _thrust;
-                _p.velocity.y += Math.sin(_angle) * _thrust;
+                _p.velocity.x += Math.cos(_angle) * velocity[0];
+                _p.velocity.y += Math.sin(_angle) * velocity[1];
 
                 // Make sure velocity hasn't exceeded limits
-                if (_p.velocity.x > _p.maxVelocity.x) {
-                    _p.velocity.x = _p.maxVelocity.x;
-                } else if (_p.velocity.x < -_p.maxVelocity.x) {
-                    _p.velocity.x = -_p.maxVelocity.x;
+                if (_p.velocity.x > _p.maxVelocity) {
+                    _p.velocity.x = _p.maxVelocity;
+                } else if (_p.velocity.x < -_p.maxVelocity) {
+                    _p.velocity.x = -_p.maxVelocity;
                 }
 
-                if (_p.velocity.y > _p.maxVelocity.y) {
-                    _p.velocity.y = _p.maxVelocity.y;
-                } else if (_p.velocity.y < -_p.maxVelocity.y) {
-                    _p.velocity.y = -_p.maxVelocity.y;
+                if (_p.velocity.y > _p.maxVelocity) {
+                    _p.velocity.y = _p.maxVelocity;
+                } else if (_p.velocity.y < -_p.maxVelocity) {
+                    _p.velocity.y = -_p.maxVelocity;
                 }
-            }
+            } else { console.log("Physics have not been enabled on this sprite."); }
+        },
+        setLockedVelocityFromAngle: function(thrust) {
+            var _p = this.physics;
+            if (_p.enabled) {
+                _p.thrusting = 1;
+                _p.acceleration += thrust;
+                if (_p.acceleration > _p.maxVelocity) {
+                    _p.acceleration = _p.maxVelocity;
+                }
+            } else { console.log("Physics have not been enabled on this sprite."); }
         },
         setAngularPhysics: function(aMax, aDrag, maxVel, drag) {
             this.physics.angularMax = aMax;
             this.physics.angularDrag = aDrag;
-            this.physics.maxVelocity = {
-                x: maxVel[0],
-                y: maxVel[1]
-            };
+            this.physics.maxVelocity = maxVel;
             this.physics.drag = drag;
         }
     }
