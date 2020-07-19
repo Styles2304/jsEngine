@@ -26,7 +26,7 @@ Ship.prototype.init = function() {
         10,     // Max Angular Velocity
         0.25,    // Angular Drag
         200,     // Max Velocity in pixels per second
-        0.5     // Drag
+        0.25     // Drag
     );
     this.collideWithWorld(true);
     // this.lockVelocityToRotation();
